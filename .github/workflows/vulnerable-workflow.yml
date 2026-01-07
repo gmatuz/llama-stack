@@ -1,0 +1,30 @@
+name: "PR Check (Vulnerable)"
+
+# 1. The Trigger
+# 'pull_request_target' runs in the context of the BASE repository (target branch),
+# giving it access to secrets and write permissions even for forks.
+on:
+  pull_request_target:
+    types: [opened, synchronize]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # 2. The Unsafe Checkout
+      # This checks out the code from the INCOMING PR (the attacker's code)
+      # explicitly using the PR's ref.
+      - name: Checkout PR Code
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      # 3. The Execution
+      # We are now running code controlled by the attacker (from the PR)
+      # inside a runner that has the privileges of the base repository.
+      - name: Run Tests
+        run: npm install && npm test
+        # Exposing secrets to untrusted code!
+#        env: 
+#          DATABASE_PASSWORD: ${{ secrets.supersecret }}
